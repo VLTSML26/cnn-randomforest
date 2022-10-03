@@ -10,22 +10,27 @@ from keras.models import Sequential
 from data_loader import DataLoader
 
 class CNN(object):
+    epochs = None
+    dropout = None
+    batch_size = None
+    optimizer = None
+    dataset = None
 
-    def __init__(
-        self,
-        dataset,
-        dropout = 0.2,
-        epochs = 5,
-        batch_size = 32,
-        optimizer = Nadam()
-    ):
+    def __init__(self, config_dict):
+        """
+        Constructor.
+        
+        Parameters
+        ----------
+        config_dict: dictionary for configuration of the neural network.
+        """
         tf.random.set_seed(0)
-        self.data = DataLoader(dataset)
-        self.dropout = dropout
-        self.epochs = epochs
-        self.batch_size = batch_size
-        self.optimizer = optimizer
+        self.__dict__.update(config_dict)
+        self.data = DataLoader(self.dataset)
         self.model = self.create_model()
+
+    def get_optimizer(self):
+        return self.optimizer
 
     def create_model(self):
         """
@@ -70,19 +75,20 @@ class CNN(object):
             self.data.y_train,
             batch_size=self.batch_size,
             epochs=self.epochs,
-            callbacks=[PrintEpoch()],
+            # callbacks=[PrintEpoch()],
             verbose=0,
             validation_data=(self.data.x_test, self.data.y_test)
         )
 
-class PrintEpoch(tf.keras.callbacks.Callback):
-    def on_epoch_end(self, epoch, logs=None):
-        print(".", end="")
-    def on_train_end(self, logs=None):
-        print()
-
 def main():
-    aa = CNN(keras.datasets.fashion_mnist)
+    df = {
+        'epochs': 5,
+        'dropout': 0.2,
+        'batch_size': 32,
+        'optimizer': Nadam(),
+        'dataset': keras.datasets.fashion_mnist,
+    }
+    aa = CNN(df)
     aa.fit()
     # print(aa.data.x_train.shape, aa.data.input_shape)
     
