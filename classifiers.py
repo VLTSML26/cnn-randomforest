@@ -13,6 +13,10 @@ from sklearn import ensemble
 
 from data_loader import DataLoader
 
+import logging, os
+logging.disable(logging.WARNING)
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
 class Classifier:
 
     def __init__(self, dataset):
