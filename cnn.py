@@ -6,6 +6,7 @@ from keras.optimizers import SGD, Adam, RMSprop, Adagrad, Adadelta, Adam, Adamax
 from keras.layers import Flatten, Conv2D, MaxPooling2D
 from keras.layers import Dense, Dropout
 from keras.models import Sequential
+from sklearn import ensemble
 
 from data_loader import DataLoader
 
@@ -69,28 +70,45 @@ class CNN(object):
     def summary(self):
         return self.model.summary()
 
-    def fit(self):
+    def fit(self, verbose: int = 0):
         return self.model.fit(
             self.data.x_train,
             self.data.y_train,
             batch_size=self.batch_size,
             epochs=self.epochs,
-            # callbacks=[PrintEpoch()],
-            verbose=0,
+            verbose=verbose,
             validation_data=(self.data.x_test, self.data.y_test)
+        )
+
+    def evaluate(self):
+        return self.model.evaluate(self.data.x_test, self.data.y_test)
+        
+class RandomForest(object):
+    n_estimators = None
+    dataset = None
+
+    def __init__(self, config_dict):
+        self.__dict__.update(config_dict)
+        self.data = DataLoader(self.dataset)
+        self.model = ensemble.RandomForestClassifier(self.n_estimators)
+    
+    # TODO: the constructor should reshape data, not the method. Also might be
+    # better if DataLoader could pass already well-shaped data by accessing info
+    # about the class calling it
+    def fit(self):
+        self.model.fit(
+            self.data.x_train.reshape(len(self.data.x_train), self.data.img_cols * self.data.img_rows),
+            self.data.y_train
         )
 
 def main():
     df = {
-        'epochs': 5,
-        'dropout': 0.2,
-        'batch_size': 32,
-        'optimizer': Nadam(),
-        'dataset': keras.datasets.fashion_mnist,
+        'n_estimators': 100,
+        'dataset': keras.datasets.fashion_mnist
     }
-    aa = CNN(df)
-    aa.fit()
-    # print(aa.data.x_train.shape, aa.data.input_shape)
-    
+    aa = RandomForest(df)
+    bb = aa.fit()
+    import ipdb; ipdb.set_trace()
+
 if __name__ == '__main__':
     main()
