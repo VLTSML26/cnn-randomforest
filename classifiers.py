@@ -6,7 +6,7 @@ import logging, os
 
 from abc import ABC, abstractmethod
 from tensorflow import keras
-from keras.optimizers import SGD, Adam, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
+from keras.optimizers import SGD, Adam, RMSprop, Adagrad, Adadelta, Adamax, Nadam
 from keras.layers import Flatten, Conv2D, MaxPooling2D
 from keras.layers import Dense, Dropout
 from keras.models import Sequential
@@ -55,14 +55,9 @@ class Classifier(ABC):
     def train(self):
         pass
 
+    @abstractmethod
     def evaluate(self):
-        try:
-            return self.model.evaluate(self.data.x_test, self.data.y_test)
-        except:
-            return self.model.score(
-                self.data.x_test,
-                self.data.y_test
-            )
+        pass
 
     def summary(self):
         try:
@@ -158,6 +153,21 @@ class CNN(Classifier):
             validation_data=(self.data.x_test, self.data.y_test)
         )
 
+    def evaluate(self):
+        loss, acc = self.model.evaluate(
+            self.data.x_test,
+            self.data.y_test,
+            verbose=0
+        )
+        print(
+            'CNN with optimizer:',
+            self.optimizer,
+            'Loss:',
+            '%.4f'%loss,
+            'Accuracy:',
+            '%.4f'%acc
+        )
+
 class RandomForest(Classifier):
     n_estimators = None
 
@@ -180,6 +190,12 @@ class RandomForest(Classifier):
     
     def train(self):
         self.model.fit(self.data.x_train, self.data.y_train)
+
+    def evaluate(self):
+        """
+        Still need to see how to do it.
+        """
+        pass
 
 def main():
     df = {
