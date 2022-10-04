@@ -32,8 +32,8 @@ class Classifier(ABC):
         Parameters
         ----------
         dataset: for now accepts only keras.datasets object containing data from
-        the fashion_mnist since this is the task of the exercise. This can be
-        easily extended in further applications.
+        the fashion_mnist since this is the task of the exercise. This can easily
+        be extended in further applications.
         
         Note
         ----
@@ -64,20 +64,6 @@ class Classifier(ABC):
             return self.model.summary()
         except:
             pass
-
-    # def table_evaluation(self):
-    #     evaluate = self.evaluate()
-    #     summary = {
-    #         'Loss': evaluate[0],
-    #         'Accuracy': evaluate[1],
-    #     }
-    #     df = pd.DataFrame.from_dict(summary)
-    #     df = df.append({
-    #         'Loss': tmp[0],
-    #         'Accuracy': tmp[1],
-    #     })
-
-    #     yield df
 
 class CNN(Classifier):
     """
