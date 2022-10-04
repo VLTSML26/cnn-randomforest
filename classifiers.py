@@ -1,10 +1,11 @@
-from abc import ABC
-from random import Random
 import tensorflow as tf
 import pandas as pd
-from tensorflow import keras
 import numpy as np
 import matplotlib.pyplot as plt
+import logging, os
+
+from abc import ABC, abstractmethod
+from tensorflow import keras
 from keras.optimizers import SGD, Adam, RMSprop, Adagrad, Adadelta, Adam, Adamax, Nadam
 from keras.layers import Flatten, Conv2D, MaxPooling2D
 from keras.layers import Dense, Dropout
@@ -13,19 +14,44 @@ from sklearn import ensemble
 
 from data_loader import DataLoader
 
-import logging, os
 logging.disable(logging.WARNING)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+tf.random.set_seed(0)
+np.random.seed(0)
 
-class Classifier:
+class Classifier(ABC):
+    """
+    Virtual class equipped with the principal abstract methods to be used in a
+    classification problem.
+    """
 
     def __init__(self, dataset):
+        """
+        Virtual class constructor.
+
+        Parameters
+        ----------
+        dataset: for now accepts only keras.datasets object containing data from
+        the fashion_mnist since this is the task of the exercise. This can be
+        easily extended in further applications.
+        
+        Note
+        ----
+        The order of the virtual methods called in this constructor matter!
+        """
         self.data = DataLoader(dataset)
+        self.reshape_data()
         self.model = self.create_model()
 
+    @abstractmethod
+    def reshape_data(self):
+        pass
+
+    @abstractmethod
     def create_model(self):
         pass
 
+    @abstractmethod
     def train(self):
         pass
 
@@ -34,7 +60,7 @@ class Classifier:
             return self.model.evaluate(self.data.x_test, self.data.y_test)
         except:
             return self.model.score(
-                self.data.x_test.reshape(len(self.data.x_test), self.data.img_cols * self.data.img_rows),
+                self.data.x_test,
                 self.data.y_test
             )
 
@@ -59,15 +85,38 @@ class Classifier:
     #     yield df
 
 class CNN(Classifier):
+    """
+    Convolutional Neural Network (CNN) from parent class Classifier.
+    """
     epochs = None
     dropout = None
     batch_size = None
     optimizer = None
 
     def __init__(self, dataset, config_dict):
+        """
+        CNN constructor.
+        
+        Parameters
+        ----------
+        dataset: see virtual class constructor.
+        
+        config_dict: dictionary containing the neural network parameters and the
+        dataset as well.
+        """
         self.__dict__.update(config_dict)
         super().__init__(dataset)
         
+    def reshape_data(self):
+        if keras.backend.image_data_format() == 'channels_first':
+            self.data.x_train = np.expand_dims(self.data.x_train, axis=1)
+            self.data.x_test = np.expand_dims(self.data.x_test, axis=1)
+            self.data.input_shape = (1, self.data.img_rows, self.data.img_cols)
+        else:
+            self.data.x_train = np.expand_dims(self.data.x_train, axis=-1)
+            self.data.x_test = np.expand_dims(self.data.x_test, axis=-1)
+            self.data.input_shape = (self.data.img_rows, self.data.img_cols, 1)
+
     def create_model(self):
         model = Sequential()
         model.add(
@@ -115,18 +164,22 @@ class RandomForest(Classifier):
     def __init__(self, dataset, config_dict):
         self.__dict__.update(config_dict)
         super().__init__(dataset)
-        
+    
+    def reshape_data(self):
+        self.data.x_train = self.data.x_train.reshape(
+            len(self.data.x_train),
+            self.data.img_cols * self.data.img_rows
+        )
+        self.data.x_test = self.data.x_test.reshape(
+            len(self.data.x_test),
+            self.data.img_cols * self.data.img_rows
+        )
+
     def create_model(self):
         return ensemble.RandomForestClassifier(self.n_estimators)
     
-    # TODO: the constructor should reshape data, not the method. Also might be
-    # better if DataLoader could pass already well-shaped data by accessing info
-    # about the class calling it
     def train(self):
-        self.model.fit(
-            self.data.x_train.reshape(len(self.data.x_train), self.data.img_cols * self.data.img_rows),
-            self.data.y_train
-        )
+        self.model.fit(self.data.x_train, self.data.y_train)
 
 def main():
     df = {
