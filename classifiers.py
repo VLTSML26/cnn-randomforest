@@ -11,6 +11,7 @@ from keras.layers import Flatten, Conv2D, MaxPooling2D
 from keras.layers import Dense, Dropout
 from keras.models import Sequential
 from sklearn import ensemble
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 
 from data_loader import DataLoader
 
@@ -89,6 +90,8 @@ class CNN(Classifier):
         super().__init__(dataset)
         
     def reshape_data(self):
+        self.data.y_train = keras.utils.to_categorical(self.data.y_train)
+        self.data.y_test = keras.utils.to_categorical(self.data.y_test)
         if keras.backend.image_data_format() == 'channels_first':
             self.data.x_train = np.expand_dims(self.data.x_train, axis=1)
             self.data.x_test = np.expand_dims(self.data.x_test, axis=1)
@@ -140,22 +143,35 @@ class CNN(Classifier):
         )
 
     def evaluate(self):
+        """
+        Evaluate the performance of the CNN for the classification problem.
+
+        Returns
+        -------
+        (score, cm, history): tuple
+            score: dict containing infos about the NN optimizer and its accuracy
+            cm: np.array containing the confusion matrix
+            history: keras.callbacks.History object returned by the fit method
+        """
+        history = self.train()
+        y_pred = self.model.predict(self.data.x_test)
+        import ipdb; ipdb.set_trace()
+        cm = confusion_matrix(self.data.y_test, y_pred)
         loss, acc = self.model.evaluate(
             self.data.x_test,
             self.data.y_test,
             verbose=0
         )
-        print(
-            'CNN with optimizer:',
-            self.optimizer,
-            'Loss:',
-            '%.4f'%loss,
-            'Accuracy:',
-            '%.4f'%acc
-        )
+        score = {
+            'Optimizer': self.optimizer,
+            'Loss': '%.4f'%loss,
+            'Accuracy': '%.4f'%acc,
+        }
+        return score, cm, history
 
 class RandomForest(Classifier):
     n_estimators = None
+    criterion = None
 
     def __init__(self, dataset, config_dict):
         self.__dict__.update(config_dict)
@@ -172,16 +188,32 @@ class RandomForest(Classifier):
         )
 
     def create_model(self):
-        return ensemble.RandomForestClassifier(self.n_estimators)
+        return ensemble.RandomForestClassifier(
+            self.n_estimators,
+            criterion=self.criterion,
+            random_state=0,
+        )
     
     def train(self):
         self.model.fit(self.data.x_train, self.data.y_train)
 
     def evaluate(self):
         """
-        Still need to see how to do it.
+        Evaluate the performance of the random forest for the classification problem.
+
+        Returns
+        -------
+        (acc, cm, report): tuple
+            acc: float between 0 and 1
+            cm: np.array containing the confusion matrix
+            report: 
         """
-        pass
+        self.train()
+        y_pred = self.model.predict(self.data.x_test)
+        cm = confusion_matrix(self.data.y_test, y_pred)
+        acc = accuracy_score(self.data.y_test, y_pred)
+        report = classification_report(self.data.y_test, y_pred, output_dict=True)
+        return cm, acc, report
 
 def main():
     df = {
@@ -191,14 +223,17 @@ def main():
         'optimizer': 'SGD',
     }
     aa = CNN(keras.datasets.fashion_mnist, df)
-    aa.train(verbose=1)
-    print(aa.evaluate())
-    df2 = {
-        'n_estimators': 100
-    }
-    bb = RandomForest(keras.datasets.fashion_mnist, df2)
-    bb.train()
-    print(bb.evaluate())
+    score, cm, history = aa.evaluate()
+    # df2 = {
+    #     'n_estimators': 10,
+    #     'criterion': 'entropy'
+    # }
+    # bb = RandomForest(keras.datasets.fashion_mnist, df2)
+    # cm, acc, report = bb.evaluate()
+    # print(type(report))
+    # print(acc)
+    # print(type(cm))
+    
 
 if __name__ == '__main__':
     main()
