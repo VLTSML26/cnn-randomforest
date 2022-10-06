@@ -154,9 +154,9 @@ class CNN(Classifier):
             history: keras.callbacks.History object returned by the fit method
         """
         history = self.train()
-        y_pred = self.model.predict(self.data.x_test)
-        import ipdb; ipdb.set_trace()
-        cm = confusion_matrix(self.data.y_test, y_pred)
+        y_pred = np.argmax(self.model.predict(self.data.x_test), axis=1)
+        rounded_labels = np.argmax(self.data.y_test, axis=1)
+        cm = confusion_matrix(rounded_labels, y_pred)
         loss, acc = self.model.evaluate(
             self.data.x_test,
             self.data.y_test,
