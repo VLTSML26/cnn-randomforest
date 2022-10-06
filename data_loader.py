@@ -8,27 +8,14 @@ class DataLoader():
         self, 
         rawdata
     ):
-        (x_train, y_train), (x_test, y_test) = rawdata.load_data()
+        (x_train, self.y_train), (x_test, self.y_test) = rawdata.load_data()
         self.x_train = x_train
         self.x_test = x_test
-        self.y_train = keras.utils.to_categorical(y_train)
-        self.y_test = keras.utils.to_categorical(y_test)
 
-        self.num_classes = len(set(y_train))
+        self.num_classes = len(set(self.y_train))
         _, self.img_rows, self.img_cols = x_train.shape
 
         self.input_shape = None
-        self.check_data_format()
-
-    def check_data_format(self):
-        if keras.backend.image_data_format() == 'channels_first':
-            self.x_train = np.expand_dims(self.x_train, axis=1)
-            self.x_test = np.expand_dims(self.x_test, axis=1)
-            self.input_shape = (1, self.img_rows, self.img_cols)
-        else:
-            self.x_train = np.expand_dims(self.x_train, axis=-1)
-            self.x_test = np.expand_dims(self.x_test, axis=-1)
-            self.input_shape = (self.img_rows, self.img_cols, 1)
 
 def main():
     a = DataLoader()
