@@ -46,18 +46,30 @@ class Classifier(ABC):
 
     @abstractmethod
     def reshape_data(self):
+        """
+        Reshapes dataset according to algorithm used for classification.
+        """
         pass
 
     @abstractmethod
     def create_model(self):
+        """
+        Creates model.
+        """
         pass
 
     @abstractmethod
     def train(self):
+        """
+        Model training method.
+        """
         pass
 
     @abstractmethod
     def evaluate(self):
+        """
+        Evaluates performancy on validation data.
+        """
         pass
 
     def summary(self):
