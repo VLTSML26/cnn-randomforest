@@ -204,6 +204,7 @@ class RandomForest(Classifier):
             self.n_estimators,
             criterion=self.criterion,
             random_state=0,
+            n_jobs=-1,
         )
     
     def train(self):
