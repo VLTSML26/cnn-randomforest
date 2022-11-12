@@ -68,7 +68,7 @@ class Classifier(ABC):
     @abstractmethod
     def evaluate(self):
         """
-        Evaluates performancy on validation data.
+        Evaluates performance on validation data.
         """
         pass
 
@@ -184,6 +184,7 @@ class CNN(Classifier):
 class RandomForest(Classifier):
     n_estimators = None
     criterion = None
+    max_samples = None
 
     def __init__(self, dataset, config_dict):
         self.__dict__.update(config_dict)
@@ -203,6 +204,7 @@ class RandomForest(Classifier):
         return ensemble.RandomForestClassifier(
             self.n_estimators,
             criterion=self.criterion,
+            max_samples=self.max_samples,
             random_state=0,
             n_jobs=-1,
         )
@@ -228,6 +230,10 @@ class RandomForest(Classifier):
         report = classification_report(self.data.y_test, y_pred, output_dict=True)
         return cm, acc, report
 
+
+"""
+WHAT FOLLOWS IS USED FOR TESTING
+"""
 def main():
     df = {
         'epochs': 5,
