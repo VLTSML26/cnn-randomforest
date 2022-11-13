@@ -12,8 +12,6 @@ from keras.layers import Dense, Dropout
 from keras.models import Sequential
 from sklearn import ensemble
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
 
 from data_loader import DataLoader
 
@@ -46,24 +44,14 @@ class Classifier(ABC):
         ----
         The order of the virtual methods called in this constructor matter!
         """
-        self.data = DataLoader(dataset)
-        self.pca_percent = pca_percent
+        self.data = DataLoader(dataset, pca_percent)
         self.reshape_data()
-        if self.pca_percent is not None:
-            self.reduce_dimensions()
         self.model = self.create_model()
 
     @abstractmethod
     def reshape_data(self):
         """
         Reshapes dataset according to algorithm used for classification.
-        """
-        pass
-
-    @abstractmethod
-    def reduce_dimensions(self):
-        """
-        Reduce dimensions if needed.
         """
         pass
 
@@ -120,6 +108,16 @@ class CNN(Classifier):
     def reshape_data(self):
         self.data.y_train = keras.utils.to_categorical(self.data.y_train)
         self.data.y_test = keras.utils.to_categorical(self.data.y_test)
+        self.data.x_train = self.data.x_train.reshape(
+            -1, 
+            self.data.img_rows, 
+            self.data.img_cols
+        )
+        self.data.x_test = self.data.x_test.reshape(
+            -1, 
+            self.data.img_rows, 
+            self.data.img_cols
+        )
         if keras.backend.image_data_format() == 'channels_first':
             self.data.x_train = np.expand_dims(self.data.x_train, axis=1)
             self.data.x_test = np.expand_dims(self.data.x_test, axis=1)
@@ -207,33 +205,7 @@ class RandomForest(Classifier):
         super().__init__(dataset, pca_percent)
     
     def reshape_data(self):
-        self.data.x_train = self.data.x_train.reshape(
-            len(self.data.x_train),
-            self.data.img_cols * self.data.img_rows
-        )
-        self.data.x_test = self.data.x_test.reshape(
-            len(self.data.x_test),
-            self.data.img_cols * self.data.img_rows
-        )
-        if self.pca_percent is not None:
-            self.rescale_data()
-
-    def rescale_data(self):
-        self.data.x_train = StandardScaler().fit_transform(self.data.x_train)
-        self.data.x_test = StandardScaler().fit_transform(self.data.x_test)
-
-    def reduce_dimensions(self):
-        pca = PCA(n_components=self.compute_pcacomponents())
-        pca.fit(self.data.x_train)
-        self.data.x_train = pca.transform(self.data.x_train)
-        self.data.x_test = pca.transform(self.data.x_test)
-
-    def compute_pcacomponents(self):
-        covmat = np.cov(self.data.x_train.T)
-        eval, _ = np.linalg.eig(covmat)
-        eval_percent = [this/sum(eval) for this in sorted(eval, reverse=True)]
-        variance_contributions = np.cumsum(eval_percent)
-        return len(variance_contributions) - sum(variance_contributions > self.pca_percent)
+        return super().reshape_data()
 
     def create_model(self):
         return ensemble.RandomForestClassifier(
@@ -270,21 +242,23 @@ class RandomForest(Classifier):
 WHAT FOLLOWS IS USED FOR TESTING
 """
 def main():
-    # df = {
-    #     'epochs': 5,
-    #     'dropout': 0.2,
-    #     'batch_size': 32,
-    #     'optimizer': 'SGD',
-    # }
-    # aa = CNN(keras.datasets.fashion_mnist, df)
-    # score, cm, history = aa.evaluate()
+    df = {
+        'epochs': 5,
+        'dropout': 0.2,
+        'batch_size': 32,
+        'optimizer': 'SGD',
+    }
+    aa = CNN(keras.datasets.fashion_mnist, df, pca_percent=0.95)
+    score, cm, history = aa.evaluate()
+    import ipdb; ipdb.set_trace()
     df2 = {
         'n_estimators': 100,
         'criterion': 'entropy',
         'max_samples': 0.5
     }
-    bb = RandomForest(keras.datasets.fashion_mnist, df2, pca_percent=0.9)
+    bb = RandomForest(keras.datasets.fashion_mnist, df2, pca_percent=0.6)
     cm, acc, report = bb.evaluate()
+    import ipdb; ipdb.set_trace()
     print(type(report))
     print(acc)
     print(type(cm))
