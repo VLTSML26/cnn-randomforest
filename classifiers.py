@@ -129,6 +129,38 @@ class CNN(Classifier):
             self.data.x_test = np.expand_dims(self.data.x_test, axis=-1)
             self.data.input_shape = (self.data.img_rows, self.data.img_cols, 1)
 
+    def reduce_dimensions(self):
+        self.data.x_train = StandardScaler().fit_transform(
+            self.data.x_train.reshape(
+                len(self.data.x_train),
+                self.data.img_cols * self.data.img_rows
+            )
+        )
+        self.data.x_test = StandardScaler().fit_transform(
+            self.data.x_test.reshape(
+                len(self.data.x_test),
+                self.data.img_cols * self.data.img_rows
+            )
+        )
+        used_components = self.compute_pcacomponents()
+        sqrt_used = int(np.sqrt(used_components))
+        pca = PCA(n_components=used_components)
+        pca.fit(self.data.x_train)
+        self.data.x_train = pca.transform(self.data.x_train).reshape(-1, sqrt_used, sqrt_used)
+        self.data.x_test = pca.transform(self.data.x_test).reshape(-1, sqrt_used, sqrt_used)
+        self.reshape_data()
+    
+    def compute_pcacomponents(self):
+        covmat = np.cov(self.data.x_train.T)
+        eval, _ = np.linalg.eig(covmat)
+        eval_percent = [this/sum(eval) for this in sorted(eval, reverse=True)]
+        variance_contributions = np.cumsum(eval_percent)
+        tmp_comp = len(variance_contributions) - sum(variance_contributions > self.pca_percent)
+        sqrt_comp = int(np.ceil(np.sqrt(tmp_comp)))
+        self.data.img_cols = sqrt_comp
+        self.data.img_rows = sqrt_comp
+        return sqrt_comp**2
+
     def create_model(self):
         model = Sequential()
         model.add(
@@ -270,24 +302,25 @@ class RandomForest(Classifier):
 WHAT FOLLOWS IS USED FOR TESTING
 """
 def main():
-    # df = {
-    #     'epochs': 5,
-    #     'dropout': 0.2,
-    #     'batch_size': 32,
-    #     'optimizer': 'SGD',
-    # }
-    # aa = CNN(keras.datasets.fashion_mnist, df)
-    # score, cm, history = aa.evaluate()
-    df2 = {
-        'n_estimators': 100,
-        'criterion': 'entropy',
-        'max_samples': 0.5
+    df = {
+        'epochs': 5,
+        'dropout': 0.2,
+        'batch_size': 32,
+        'optimizer': 'SGD',
     }
-    bb = RandomForest(keras.datasets.fashion_mnist, df2, pca_percent=0.9)
-    cm, acc, report = bb.evaluate()
-    print(type(report))
-    print(acc)
-    print(type(cm))
+    aa = CNN(keras.datasets.fashion_mnist, df, pca_percent=0.9)
+    import ipdb; ipdb.set_trace()
+    score, cm, history = aa.evaluate()
+    # df2 = {
+    #     'n_estimators': 100,
+    #     'criterion': 'entropy',
+    #     'max_samples': 0.5
+    # }
+    # bb = RandomForest(keras.datasets.fashion_mnist, df2, pca_percent=0.9)
+    # cm, acc, report = bb.evaluate()
+    # print(type(report))
+    # print(acc)
+    # print(type(cm))
     
 
 if __name__ == '__main__':
